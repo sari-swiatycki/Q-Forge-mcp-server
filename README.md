@@ -1,134 +1,231 @@
-# MCP SQL Agent
+# Q-Forge  
+### AI Query Planning, Safety & Performance Control Plane
 
-Plan-first, risk-aware MCP server that accepts natural language requests,
-translates them into SQL, and can safely execute reads or controlled writes
-(insert/update/delete). It focuses on performance, speed, and safety so queries
-do not stall the database, and it serves both developers and non-technical
-users who want convenient access to data.
-  
-## Why this exists
+---
 
-In my last role, I worked on AI infrastructure performance, measuring and
-improving throughput and latency. It is not the same domain as SQL systems, but
-it made the importance of performance crystal clear. That mindset shaped this
-project: not just a tool that knows a database and writes queries, but a system
-that understands performance and protects databases from costly workloads. Every
-query is planned, scored, and constrained before it executes.
+## 🚀 Overview
 
-## What it delivers
+**Q-Forge** is an AI-powered query planning and execution control engine that safely transforms natural-language requests into **optimized, explainable, and performance-aware SQL queries**.
 
-- Natural language to SQL translation with schema grounding
-- Plan-only mode: get SQL + EXPLAIN without executing
-- Structured query plan JSON (intent, tables, joins, filters, confidence)
-- Safety gate that blocks risky queries before execution
-- Performance metrics on every response
-- Safe execution with enforced limits and risk blocking
-- Controlled writes (INSERT/UPDATE/DELETE) with strict validation
-- ERD generation to understand table relationships quickly
-- Fast DB onboarding for teams and SQL developers
+Unlike basic NL→SQL generators, Q-Forge is designed as a **database control plane** — enforcing safety policies, measuring performance, and providing full explainability before any query is executed.
 
-## Performance and safety model
+The project reflects a strong **AI infrastructure mindset**, focusing on:
+- performance analysis
+- execution safety
+- system boundaries
+- clean, extensible architecture
 
-- EXPLAIN-first planning with cost and row estimates when supported
-- Risk heuristics for full scans, large joins, ORDER BY without LIMIT, SELECT *
-- Automatic safe LIMIT (default: 1000) when a query is unbounded
-- Query blocking when risk score is high (default threshold: 0.7)
-- Index suggestions based on WHERE/JOIN/ORDER BY patterns
-- Schema caching (TTL: 60s) to avoid repeated introspection
-- Audit log for every query decision (JSONL)
+---
 
-## Architecture
+## 🎯 Problem Statement
 
-Dependency rule: application logic never depends on infrastructure. Adapters
-point inward through ports.
+LLMs can generate SQL quickly — but in real systems this introduces serious risks:
 
-![Architecture](docs/architecture.svg)
+- Unsafe write operations  
+- Unbounded queries  
+- Performance regressions  
+- Lack of visibility into query cost  
+- No explainability or auditability  
 
-Patterns used:
-- Clean Architecture (Ports and Adapters)
-- Use Case orchestration for workflows
-- Singleton-style service wiring with dependency injection
-- DbContext as a bounded access layer
-- DTOs for validated, explicit responses
+Most existing solutions optimize for **generation**, not for **production usage**.
 
-## Quick start
+---
 
-1) Create `mcp_sql_agent/app/.env` from the example and set your values.
-2) Install Python dependencies (OpenAI SDK, SQLAlchemy, and a DB driver).
-3) Run the MCP server:
+## 💡 Solution
 
+Q-Forge treats every query as a **controlled system operation**, not just text generation.
+
+Each request goes through a structured pipeline:
+
+1. Query planning (structured, deterministic)  
+2. Safety & policy validation  
+3. Performance estimation & instrumentation  
+4. Explain / preview / export modes  
+5. Audited execution (optional)  
+
+This makes Q-Forge suitable for **real systems**, not demos.
+
+---
+
+## 🧠 Architectural Philosophy
+
+### Clean Architecture by Design
+
+Q-Forge is built using **Clean Architecture principles**, with strict separation of concerns:
+
+```
+Interfaces / MCP Layer
+│
+├── Application / Orchestration
+│   - Query lifecycle
+│   - Policy enforcement
+│   - Mode handling
+│
+├── Core Engine
+│   - Query planning
+│   - Safety rules
+│   - Performance heuristics
+│   - Explainability
+│
+└── Infrastructure
+    - SQLAlchemy adapters
+    - Caching
+    - Audit logging
+```
+
+The **core engine is LLM-agnostic, DB-agnostic, and interface-agnostic**.
+
+---
+
+## ⚙️ Database Independence
+
+Q-Forge supports **any SQL database supported by SQLAlchemy**, including:
+
+- PostgreSQL  
+- MySQL  
+- SQLite  
+- SQL Server  
+
+This is achieved through:
+- a unified `DbContext`
+- adapter-based execution
+- schema introspection abstraction
+
+No database-specific logic exists in the core engine.
+
+---
+
+## 🛡️ Safety as a First-Class Concern
+
+Before execution, every query is validated by a **Policy Engine**:
+
+- Read-only by default  
+- Write operations blocked unless explicitly approved  
+- Automatic LIMIT enforcement  
+- Join count and complexity thresholds  
+- High-risk query detection  
+
+Unsafe queries are **blocked with a clear explanation**, not silently modified.
+
+---
+
+## ⚡ Performance Awareness
+
+Q-Forge was designed with a strong **AI infrastructure & performance mindset**.
+
+Each request includes detailed metrics:
+- schema introspection time  
+- LLM planning time  
+- SQL compilation time  
+- execution time  
+- rows returned  
+- cache hits  
+
+The system also provides:
+- heuristic cost estimation  
+- EXPLAIN-only mode  
+- bounded preview execution  
+
+---
+
+## 🧩 Query Planning (Not Just SQL Generation)
+
+Every request produces a **Query Plan JSON** before SQL is executed.
+
+The plan includes:
+- intent  
+- tables  
+- joins  
+- join paths (via foreign-key graph)  
+- filters  
+- aggregations  
+- group_by / order_by  
+- limit  
+- confidence score  
+
+This makes every decision **inspectable, debuggable, and auditable**.
+
+---
+
+## 🔍 Explain / Preview / Export Modes
+
+- `mode="explain"` – return plan only, no execution  
+- `mode="preview"` – bounded execution with LIMIT  
+- `output_format="csv"` – safe data export  
+
+Execution is always explicit and controlled.
+
+---
+
+## 🧾 Audit & Observability
+
+Every request is written to an **audit log**:
+- natural language query  
+- generated SQL  
+- policy decision  
+- execution metrics  
+- lifecycle state  
+
+---
+
+## 🧱 Design Patterns Used
+
+- Clean Architecture  
+- Adapter pattern (DB abstraction)  
+- Singleton-style DbContext lifecycle  
+- Policy engine pattern  
+- Explicit lifecycle states  
+
+---
+
+## 🛠️ Technology Stack
+
+- Python  
+- SQLAlchemy  
+- MCP (Model Context Protocol)  
+- LLM-based reasoning (pluggable)  
+
+---
+
+## ▶️ Running the Project
+
+### 1. Clone
 ```bash
-cd mcp_sql_agent
-python app/main.py
+git clone https://github.com/your-org/q-forge
+cd q-forge
 ```
 
-## Configuration
-
-`mcp_sql_agent/app/.env`:
-
-```
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4o-mini
-DB_URL=postgresql+psycopg://user:password@localhost:5432/mcp_db
+### 2. Setup environment
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
-## How to use
-
-Plan-only SQL (no execution):
-```json
-{"tool":"plan_query","nl_query":"Show active users by signup date","safe_limit":500}
+### 3. Configure database
+Edit the connection string in:
+```
+config/database.py
 ```
 
-Safe read:
-```json
-{"tool":"run_sql","sql":"SELECT id, name FROM users ORDER BY id","safe":true,"mode":"preview"}
+### 4. Run MCP server
+```bash
+python main.py
 ```
 
-Controlled write:
-```json
-{"tool":"run_sql_write_approved","sql":"UPDATE users SET name='Dana' WHERE id=2"}
-```
+---
 
-ERD relationships:
-```json
-{"tool":"get_erd"}
-```
+## 🚫 Non-Goals
 
-## MCP tools
+- Not a BI or visualization tool  
+- Not a chat interface  
+- Not an autonomous agent executing without approval  
 
-- `ping()`
-- `get_schema(db_url=None)`
-- `list_tables(db_url=None)`
-- `get_erd(db_url=None)`
-- `nl_to_sql(nl_query, db_url=None)`
-- `plan_query(nl_query, db_url=None, safe_limit=1000)`
-- `run_sql(sql, format_table=False, db_url=None, safe=True, safe_limit=1000, mode="execute", preview_limit=50, output_format="json")`
-- `run_sql_write(sql, db_url=None)`
-- `run_sql_write_approved(sql, db_url=None)`
-- `explain_sql(sql, db_url=None, safe_limit=1000)`
-- `ask_db(nl_query, execute=True, format_table=False, db_url=None, safe=True, safe_limit=1000, mode="execute", preview_limit=50, output_format="json")`
-- `set_db_url(db_url)`
-- `db_debug()`
+---
 
-## Code structure
+## 🏁 Summary
 
-- `mcp_sql_agent/app/interfaces`: MCP tools and transport boundary
-- `mcp_sql_agent/app/application`: use cases and orchestration logic
-- `mcp_sql_agent/app/domain`: ports and core policies
-- `mcp_sql_agent/app/infrastructure`: DB and LLM adapters
+Q-Forge demonstrates how AI can be integrated into database systems **responsibly** — with safety, performance, and explainability as core principles.
 
-## MCP client example (TOML)
-
-Use any MCP-capable client. Example configuration (adjust to your client):
-
-```toml
-[mcp.servers.sql]
-command = "python"
-args = ["mcp_sql_agent/app/main.py"]
-transport = "stdio"
-```
-
-## Notes
-
-- Store secrets locally and never commit `.env`.
-- `run_sql_write` is intentionally strict; validate inputs before use.
+It is not a demo.  
+It is a **foundation for production-grade AI-assisted data access**.
