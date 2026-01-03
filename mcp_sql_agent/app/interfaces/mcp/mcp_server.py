@@ -1,6 +1,7 @@
-from MCP.tools import sql_tools
+from mcp_sql_agent.app.interfaces.mcp.tools import sql_tools
 
 mcp = sql_tools.mcp
+
 
 def start_mcp():
     # מפעיל MCP על stdin/stdout או על HTTP

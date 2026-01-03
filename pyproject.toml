@@ -1,0 +1,15 @@
+[project]
+name = "mcp-sql-agent"
+version = "0.1.0"
+description = "MCP server for NL-to-SQL with plan-first safety and performance signals."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "sqlalchemy>=2.0",
+  "openai>=1.0",
+  "psycopg>=3.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["mcp_sql_agent/tests"]
+addopts = "-q"

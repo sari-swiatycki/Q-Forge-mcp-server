@@ -6,6 +6,13 @@
 # dotenv files
 .env
 
+# Python virtual environments
+venv/
+.venv/
+
+# Local databases
+*.db
+
 # User-specific files
 *.rsuser
 *.suo
