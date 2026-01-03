@@ -4,5 +4,5 @@ mcp = sql_tools.mcp
 
 
 def start_mcp():
-    # מפעיל MCP על stdin/stdout או על HTTP
-    mcp.run(transport="stdio")  # או "http" אם את רוצה REST API
+    # Default to stdio for MCP clients; switch to http for REST-style access.
+    mcp.run(transport="stdio")

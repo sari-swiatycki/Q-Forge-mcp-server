@@ -26,6 +26,76 @@ def _set_service(service: SqlAgentService) -> None:
     _service = service
 
 
+@mcp.resource(
+    "resource://db/schema",
+    name="db_schema",
+    title="Database schema",
+    description="Current database schema (tables, columns, relationships).",
+    mime_type="application/json",
+)
+def resource_db_schema() -> dict:
+    """Return the current database schema for the default DB URL."""
+    try:
+        return _get_service().get_schema()
+    except Exception as exc:
+        logger.exception("resource_db_schema failed")
+        return {"error": str(exc)}
+
+
+@mcp.resource(
+    "resource://db/erd",
+    name="db_erd",
+    title="Database ERD",
+    description="Mermaid ER diagram for the current database.",
+    mime_type="application/json",
+)
+def resource_db_erd() -> dict:
+    """Return an ER diagram payload for the default DB URL."""
+    try:
+        return _get_service().get_erd()
+    except Exception as exc:
+        logger.exception("resource_db_erd failed")
+        return {"error": str(exc)}
+
+
+@mcp.prompt(
+    name="nl_to_sql",
+    title="NL to SQL",
+    description="Translate a natural language request into SQL using the current schema.",
+)
+def prompt_nl_to_sql(nl_query: str) -> list[dict]:
+    return [
+        {
+            "role": "system",
+            "content": "You are a SQL assistant. Use the provided schema. Return only SQL.",
+        },
+        {
+            "role": "user",
+            "content": {"type": "resource", "resource": {"uri": "resource://db/schema"}},
+        },
+        {"role": "user", "content": f"Request: {nl_query}"},
+    ]
+
+
+@mcp.prompt(
+    name="sql_safety_check",
+    title="SQL safety check",
+    description="Review a SQL query for safety and suggest improvements.",
+)
+def prompt_sql_safety_check(sql: str) -> list[dict]:
+    return [
+        {
+            "role": "system",
+            "content": "Review the SQL for safety and performance risks. Suggest improvements.",
+        },
+        {
+            "role": "user",
+            "content": {"type": "resource", "resource": {"uri": "resource://db/schema"}},
+        },
+        {"role": "user", "content": f"SQL:\n{sql}"},
+    ]
+
+
 @mcp.tool()
 def ping() -> str:
     """Health check tool. Returns 'pong'."""

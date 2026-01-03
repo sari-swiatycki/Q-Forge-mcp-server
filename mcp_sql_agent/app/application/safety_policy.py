@@ -22,7 +22,7 @@ def evaluate_policy(sql: str, plan: dict, read_only: bool = True) -> dict:
             "suggested_fix": "Send a single statement per request.",
         }
 
-    join_count = len(re.findall(r"\\bjoin\\b", text))
+    join_count = len(re.findall(r"\bjoin\b", text))
     if join_count >= 3:
         return {
             "allowed": False,
