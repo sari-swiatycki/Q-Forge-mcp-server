@@ -1,82 +1,77 @@
 # Q-Forge
 ### AI Query Planning, Safety & Performance Control Plane
 
-Q-Forge is an MCP-ready control plane that turns natural-language questions into **optimized SQL**, validates them for **safety**, and executes them with **performance guardrails**. This is less about hype and more about accuracy and speed: the system prioritizes the most correct and fastest queries.
+Q-Forge is an MCP-ready control plane that turns natural-language requests into SQL through a structured query lifecycle: plan, validate, explain, execute (bounded), and measure. It emphasizes safety gates, policy reasoning, and measurable performance metrics rather than opaque SQL generation.
 
-This is not just "NL-to-SQL". It is a **full query lifecycle system**: plan, validate, explain, measure, and control.
+---
+
+## Background / Motivation
+
+I built AI infrastructure with a focus on performance analysis (GPU/inference). The same mindset maps to database query safety and efficiency: plan first, enforce guardrails, and expose metrics at each stage of the query lifecycle. Q-Forge applies those principles to SQL generation and execution through explicit planning, policy enforcement, and auditability.
 
 ---
 
 ## What Makes It Different
 
-- **Speed-first design**: built to produce the fastest, most efficient queries possible.
-- **Production-grade reliability**: audit logs and metrics for every request.
-- **Tests for everything that matters**: policy, planning, caching, audit, MCP tools.
-- **Clean Architecture**: strict separation of layers and easy extensibility.
-- **Built for any DB**: consistent access via DbContext, DI, DTOs, and adapters.
+- **Plan-first lifecycle**: every request produces a Query Plan JSON, so the policy engine can evaluate intent and risk before execution.
+- **Policy-driven safety**: writes are blocked by default; explicit allowlists and rule checks decide what can execute.
+- **Stage-level metrics**: planning, validation, explain, and execution timings are captured for performance analysis.
+- **Explain/preview modes**: safe modes return EXPLAIN output or bounded results before any full execution.
+- **Deterministic caching**: schema fingerprints key the plan cache to reduce recomputation on unchanged metadata.
 
 ---
 
-## The Story Behind It
-
-In a previous project I worked on AI infrastructure with a strong focus on performance. There it was GPU and inference. That experience made it clear this project will not be complete without serious performance focus. I spoke with several companies, including a bank, and the need was clear: the intelligence must know the VDB, know how to assemble SQL scripts for heavy tables on busy, bank-grade servers, and understand context and schema through diagrams. So I built a system that is pleasant and efficient, not only for SQL developers, but also for people who want to manage employee payroll in a simple way.
-
----
-
-## Core Pipeline
+## Core Query Lifecycle
 
 1. **Plan**: build a structured Query Plan (JSON).
-2. **Validate**: safety and policy checks.
-3. **Estimate**: performance heuristics + optional EXPLAIN.
-4. **Execute**: explicit, bounded execution.
-5. **Audit**: log every decision and metric.
+2. **Validate**: policy engine checks for safety and allowed operations.
+3. **Explain**: optional EXPLAIN and heuristic estimates.
+4. **Execute**: bounded execution in preview or explicit full execution.
+5. **Audit**: write decisions, metrics, and outcomes to the audit log.
 
 ---
 
 ## Architecture
 
-![Q-Forge Architecture](docs/architecture.svg)
+```mermaid
+flowchart TD
+  A[Natural language request] --> B[Schema Introspection]
+  B --> C[Query Plan JSON]
+  C --> D[Safety/Policy Gate]
+  D --> E{Mode}
+  E -->|explain| F[Explain Output]
+  E -->|preview| G[Bounded Execute + LIMIT]
+  E -->|export| H[CSV/JSON Output]
+  G --> I[Metrics + Audit Log]
+  H --> I
+```
 
-Q-Forge follows **Clean Architecture**:
-
+Q-Forge follows Clean Architecture:
 - **Interfaces (MCP tools)**: transport and tool definitions.
-- **Application layer**: orchestration, modes, and safety gates.
-- **Core engine**: planning, validation, explainability.
-- **Infrastructure**: SQLAlchemy, LLM providers, audit logging.
-
-It uses a **DbContext (VDBContext-style lifecycle)** for consistent access, cache awareness, and testability.
+- **Application layer**: query lifecycle orchestration and modes.
+- **Core engine**: planning, validation, and explainability.
+- **Infrastructure**: SQLAlchemy adapters, LLM providers, and audit logging.
 
 ---
 
-## Safety & Performance
+## Safety Guarantees
 
-Safety is first-class:
-- Read-only by default.
-- Writes require explicit approval.
-- Automatic LIMIT enforcement.
-- Join and risk thresholds with clear explanations.
-
-Performance is built in:
-- Planning, compile, and execution timing metrics.
-- EXPLAIN-only mode.
-- Bounded preview execution.
+- Read-only by default; writes require explicit approval.
+- Bounded preview execution enforces LIMIT.
+- Audit log records decisions, metrics, and outcomes.
+- Policy engine returns reasons when a request is blocked.
 
 ---
 
-## Query Planning (Not Just SQL Generation)
+## Non-Goals
 
-Every request produces a **Query Plan JSON** before execution, including:
-- intent
-- tables + join paths
-- filters + aggregations
-- group_by / order_by / limit
-- confidence score
-
-This makes decisions **inspectable, debuggable, and auditable**.
+- Not a BI or visualization tool.
+- Not a chat UI.
+- Not an autonomous system that performs writes without approval.
 
 ---
 
-## MCP Tools (What You Can Call)
+## MCP Tools
 
 Core tools:
 - `nl_to_sql`: translate NL to SQL (optionally include plan).
@@ -96,23 +91,18 @@ Execution modes:
 ## Tech & Build Principles
 
 - **SQLAlchemy** as the primary DB adapter.
-- **DbContext Singleton** for consistent access and lifecycle control.
+- **DbContext** for consistent access and lifecycle control.
 - **Dependency Injection** across layers.
 - **DTOs** for clean, safe data transfer.
 
 ---
 
-## Local Run
+## Quickstart
 
-Clone first:
-```bash
-git clone <REPO_URL>
-```
-
+Create and activate a venv:
 ```bash
 python -m venv venv
 ```
-Activate:
 - Windows: `venv\Scripts\activate`
 - macOS/Linux: `source venv/bin/activate`
 
@@ -121,18 +111,36 @@ Install:
 pip install -e .
 ```
 
-Create `.env` and activate the virtual environment. Add a `CONNECTION_STRING` only if you need a DB connection.
+Configure environment in `mcp_sql_agent/app/.env`:
+```bash
+DB_URL=sqlite:///mcp_sql_agent/app/demo.db
+OPENAI_API_KEY=your_api_key_here
+OPENAI_MODEL=gpt-4o-mini
+LOG_LEVEL=INFO
+```
 
-For MCP integration, add this to your `.toml`:
+Run the MCP server (stdio transport):
+```bash
+python -m mcp_sql_agent.app.main
+```
+
+Example MCP client config (`mcp.toml`):
 ```toml
-model = "gpt-5.2-codex"
-model_reasoning_effort = "medium"
+[mcp_servers.q_forge]
+command = "C:\\path\\to\\Q-Forge\\venv\\Scripts\\python.exe"
+args = ["-m", "mcp_sql_agent.app.main"]
+cwd = "C:\\path\\to\\Q-Forge"
+```
 
-[mcp_servers.mcp_sql_agent]
-command = "C:\\Users\\user1\\Desktop\\mcp_sql_agent\\venv\\Scripts\\python.exe"
-args = ["C:\\Users\\user1\\Desktop\\mcp_sql_agent\\mcp_sql_agent\\app\\main.py"]
-cwd = "C:\\Users\\user1\\Desktop\\mcp_sql_agent\\mcp_sql_agent\\app"
-[mcp_servers.github_mcp_server]
+Example tool call (client-side):
+```json
+{
+  "tool": "ask_db",
+  "arguments": {
+    "question": "Top 5 customers by revenue last quarter",
+    "mode": "preview"
+  }
+}
 ```
 
 ---
@@ -144,19 +152,3 @@ pytest
 ```
 
 Includes tests for policy enforcement, caching, audit logging, planning, and tool behavior.
-
-There are tests in the project, and the system is far from perfect. The plan is to harden security, especially the painful prompt-security gap and the broader security surface of MCP servers.
-
----
-
-## Non-Goals
-
-- Not a BI or visualization tool.
-- Not a chat UI.
-- Not an autonomous agent executing without approval.
-
----
-
-## Summary
-
-Q-Forge is a **production-minded query control plane** built to deliver the **fastest, safest, and most efficient** database requests. It is engineered with Clean Architecture, full test coverage, and strict policy control for real-world use.
