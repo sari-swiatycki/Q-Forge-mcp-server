@@ -1,23 +1,44 @@
-# Q-Forge
+# 🧠Q-Forge
 ### AI Query Planning, Safety & Performance Control Plane
+Translating natural-language questions into safe, efficient, production-ready SQL.
 
-Q-Forge is an MCP-ready control plane that turns natural-language requests into SQL through a structured query lifecycle: plan, validate, explain, execute (bounded), and measure. It emphasizes safety gates, policy reasoning, and measurable performance metrics rather than opaque SQL generation.
+Q-Forge is a production-grade MCP server that transforms natural-language questions into safe, optimized, auditable SQL queries — with a strong, explicit focus on performance, correctness, and control.
+This project was built from a real infrastructure mindset:
+every query is a potentially dangerous, expensive operation — and must be planned, validated, measured, and governed
 
 ---
 
 ## Background / Motivation
+This project is a direct continuation of my previous work on AI infrastructure.
 
-I built AI infrastructure with a focus on performance analysis (GPU/inference). The same mindset maps to database query safety and efficiency: plan first, enforce guardrails, and expose metrics at each stage of the query lifecycle. Q-Forge applies those principles to SQL generation and execution through explicit planning, policy enforcement, and auditability.
+In a prior project, I focused on GPU-based inference systems, where performance measurement, bottleneck analysis, and efficiency were not optional — they were the core of the system.
+
+Working on large-scale inference made one thing very clear:
+a system that is “correct” but inefficient is not production-ready.
+
+While that project operated in the GPU and inference domain, the same realization applies even more strongly to databases and query execution.
+
+In environments such as banks or enterprise data platforms,
+There is no room for unnecessary latency, and דscripts must never block or degrade the system.
+This insight led to the core idea behind Q-Forge:
+building not just an NL→SQL translator, but a control plane that understands the database, validates intent, and executes queries safely and efficiently.
+
+
 
 ---
 
-## What Makes It Different
+##🔥 What Makes It Different
 
+- **Database-aware NL→SQL engine** : 
+  Natural-language questions are translated into correct SQL by reasoning over the actual database schema (LLM).
+- **Explicit schema & relationship understanding**  :
+  The system introspects tables, columns, foreign keys, and join paths, and builds a structured internal representation of the database that can be exposed as plans or diagrams.
 - **Plan-first lifecycle**: every request produces a Query Plan JSON, so the policy engine can evaluate intent and risk before execution.
-- **Policy-driven safety**: writes are blocked by default; explicit allowlists and rule checks decide what can execute.
 - **Stage-level metrics**: planning, validation, explain, and execution timings are captured for performance analysis.
 - **Explain/preview modes**: safe modes return EXPLAIN output or bounded results before any full execution.
 - **Deterministic caching**: schema fingerprints key the plan cache to reduce recomputation on unchanged metadata.
+- **Policy-driven safety**: writes are blocked by default; explicit allowlists and rule checks decide what can execute.
+
 
 ---
 
@@ -47,10 +68,11 @@ flowchart TD
 ```
 
 Q-Forge follows Clean Architecture:
-- **Interfaces (MCP tools)**: transport and tool definitions.
-- **Application layer**: query lifecycle orchestration and modes.
-- **Core engine**: planning, validation, and explainability.
-- **Infrastructure**: SQLAlchemy adapters, LLM providers, and audit logging.
+- **Interfaces (MCP tools)**: transport + tool definitions (`interfaces/mcp/*`).
+- **Application layer**: use-cases & orchestration (`application/use_cases/*`, `sql_agent_service.py`).
+- **Domain (ports)**: stable interfaces for adapters (`domain/ports.py`).
+- **Infrastructure**: SQLAlchemy adapter, DB context, LLM provider, config & logging (`infrastructure/*`).
+
 
 ---
 
@@ -132,16 +154,7 @@ args = ["-m", "mcp_sql_agent.app.main"]
 cwd = "C:\\path\\to\\Q-Forge"
 ```
 
-Example tool call (client-side):
-```json
-{
-  "tool": "ask_db",
-  "arguments": {
-    "question": "Top 5 customers by revenue last quarter",
-    "mode": "preview"
-  }
-}
-```
+
 
 ---
 
