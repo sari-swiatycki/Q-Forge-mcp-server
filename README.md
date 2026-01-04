@@ -1,7 +1,7 @@
 # Q-Forge
 ### AI Query Planning, Safety & Performance Control Plane
 
-Q-Forge is an MCP-ready control plane that turns natural-language questions into **optimized SQL**, validates them for **safety**, and executes them with **performance guardrails**.
+Q-Forge היא מערכת MCP שמתרגמת שאלות בשפה טבעית ל-**SQL אופטימלי**, מאמתת **בטיחות**, ומריצה עם **שומרי ביצועים**. כאן הדגש הוא פחות על "אש" ויותר על דיוק ומהירות: המערכת שמה דגש על השאילתות הכי נכונות והכי מהירות.
 
 This is not just "NL-to-SQL". It is a **full query lifecycle system**: plan, validate, explain, measure, and control.
 
@@ -19,11 +19,7 @@ This is not just "NL-to-SQL". It is a **full query lifecycle system**: plan, val
 
 ## The Story Behind It
 
-The idea came from real needs:
-- A bank developer who needed a **fast, safe, measurable** query layer for production.
-- A business manager still handling data manually, who needed reliable answers from a DB.
-
-Q-Forge was built to serve both worlds: **enterprise-grade safety and speed**, and **simple access to answers**.
+בפרויקט הקודם שהתעסקתי איתו נגעתי בתשתיות AI עם דגש על ביצועים — שם זה היה GPU ו‑Inference. הבנתי שהפרויקט הזה לא יהיה שלם אם לא נשים דגש אמיתי על ביצועים. דיברתי עם כמה חברות, אחת מהן בנק, והצורך היה ברור: שהבינה תכיר את ה‑VDB, תדע להרכיב סקריפטים ב‑SQL ללוחות כבדים שמתאימים לשרתים עמוסים, ותבין הקשרים וסכמות בעזרת תרשימים. לכן בניתי מערכת נוחה, נעימה ובעיקר יעילה — לא רק למתכנתי SQL, אלא גם לאנשים שרוצים לנהל משכורות עובדים בצורה פשוטה.
 
 ---
 
@@ -108,6 +104,11 @@ Execution modes:
 
 ## Local Run
 
+Clone first:
+```bash
+git clone <REPO_URL>
+```
+
 ```bash
 python -m venv venv
 ```
@@ -120,9 +121,18 @@ Install:
 pip install -e .
 ```
 
-Run MCP Server:
-```bash
-python -m mcp_sql_agent.app.main
+Create `.env` and activate the virtual environment. Add a `CONNECTION_STRING` only if you need a DB connection.
+
+For MCP integration, add this to your `.toml`:
+```toml
+model = "gpt-5.2-codex"
+model_reasoning_effort = "medium"
+
+[mcp_servers.mcp_sql_agent]
+command = "C:\\Users\\user1\\Desktop\\mcp_sql_agent\\venv\\Scripts\\python.exe"
+args = ["C:\\Users\\user1\\Desktop\\mcp_sql_agent\\mcp_sql_agent\\app\\main.py"]
+cwd = "C:\\Users\\user1\\Desktop\\mcp_sql_agent\\mcp_sql_agent\\app"
+[mcp_servers.github_mcp_server]
 ```
 
 ---
@@ -134,6 +144,8 @@ pytest
 ```
 
 Includes tests for policy enforcement, caching, audit logging, planning, and tool behavior.
+
+There are tests in the project, and the system is far from perfect. The plan is to harden security, especially the painful prompt-security gap and the broader security surface of MCP servers.
 
 ---
 
