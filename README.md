@@ -1,153 +1,150 @@
 # Q-Forge
-### AI Query Planning, Safety & Performance Control Plane
+### מסלול השליטה לשאילתות הכי מהירות, יעילות ובטוחות
 
-Q-Forge is an MCP-ready control plane that turns natural-language questions about your database into **optimized SQL**, validates them for **safety**, and (optionally) executes them with **performance guardrails**.
+Q-Forge הוא Control Plane מוכן ל‑MCP שממיר שאלות טבעיות לשאילתות SQL **אופטימליות**, מתכנן אותן מראש, מאמת **בטיחות**, ומבצע אותן עם **מדדי ביצועים** ושכבות הגנה.
 
-It is not just a "NL-to-SQL" generator. It is a **query lifecycle system** that plans, validates, explains, and measures every request before execution.
-
----
-
-## What It Does
-
-- Accepts natural-language questions about your DB (or direct SQL).
-- Translates to SQL with a deterministic plan step first.
-- Enforces safety policies (read-only by default).
-- Adds performance safeguards (limits, complexity thresholds, EXPLAIN mode).
-- Emits audit logs and execution metrics for every request.
+זה לא עוד “NL‑to‑SQL”. זה **מנוע חיים מלא לשאילתה**: תכנון, ולידציה, הסבר, מדידה ובקרה.
 
 ---
 
-## Why It Exists (AI Infrastructure Mindset)
+## למה הפרויקט הזה מיוחד
 
-The project was inspired by real AI infrastructure work: deploying models, measuring performance, and hardening systems in production. That experience made one point obvious: **without safety and speed, nothing ships**.
-
-Q-Forge applies that mindset to data access:
-- Not about GPU inference, but about **query speed, safety, and visibility**.
-- Built to measure, explain, and control queries before they touch production data.
-- Focused on reliability and operational clarity, not flashy demos.
-
----
-
-## Core Pipeline
-
-1. **Plan**: Build a structured query plan (JSON).
-2. **Validate**: Safety/policy checks (read-only by default).
-3. **Estimate**: Performance heuristics + optional EXPLAIN.
-4. **Execute**: Explicit, bounded execution.
-5. **Audit**: Log every decision and metric.
+- **המהירות במקום הראשון**: כל העיצוב מכוון לשאילתות הכי מהירות ויעילות שניתן להפיק.
+- **אמינות ברמת פרודקשן**: מדדים, לוגים ו‑audit לכל בקשה.
+- **בדיקות מקיפות**: יש TESTS לכל רכיב מרכזי – אבטחה, תכנון, ביצוע וכלי MCP.
+- **Clean Architecture אמיתי**: הפרדה חדה בין שכבות, ניתוק תלויות, ויכולת החלפה קלה.
+- **בנוי נכון לכל DB**: גישה עקבית דרך DbContext, Singleton, הזרקות, DTOs ועוד.
 
 ---
 
-## Architecture
+## הסיפור מאחורי זה
+
+הרעיון נולד משיחות עם:
+- מתכנתת בבנק שהייתה צריכה שכבת שאילתות **מהירה, בטוחה ומדידה** לפרודקשן.
+- מנהלת עסק שמחזיקה נתונים ידנית עד היום, ורצתה פתרון פשוט לשאלות אמיתיות מול DB.
+
+הפרויקט נבנה כדי לשרת את שני העולמות: **מהירות ודיוק בארגון גדול**, ו‑**פשטות של קבלת תשובות** בעסק קטן.
+
+---
+
+## צינור העבודה (Core Pipeline)
+
+1. **Plan**: בניית Query Plan מובנה (JSON).
+2. **Validate**: בדיקות בטיחות ומדיניות.
+3. **Estimate**: הערכת ביצועים ו‑EXPLAIN במידת הצורך.
+4. **Execute**: ביצוע מוגבל ומבוקר.
+5. **Audit**: תיעוד מלא של ההחלטות והמדדים.
+
+---
+
+## ארכיטקטורה
 
 ![Q-Forge Architecture](docs/architecture.svg)
 
-Q-Forge follows **Clean Architecture** with strict separation of concerns:
+Q-Forge בנוי לפי **Clean Architecture**:
 
-- **Interfaces (MCP tools)**: transport and tool definitions.
-- **Application layer**: orchestration, mode handling, safety gates.
-- **Core engine**: planning, validation, explainability.
-- **Infrastructure**: adapters for SQLAlchemy, LLM providers, audit logging.
+- **Interfaces (MCP tools)**: הגדרות כלים ו‑transport.
+- **Application layer**: תזמור תרחישים ומדיניות.
+- **Core engine**: תכנון, ולידציה והסבריות.
+- **Infrastructure**: SQLAlchemy, ספקי LLM, Audit logging.
 
-It uses a **DbContext (VDBContext-style lifecycle)** to keep database access consistent, cache-aware, and easy to test.
-
----
-
-## Safety & Performance
-
-Safety is a first-class feature:
-- Read-only by default.
-- Write queries require explicit approval.
-- Automatic LIMIT enforcement.
-- Join complexity thresholds.
-- High-risk query detection with clear explanations.
-
-Performance awareness is baked in:
-- Planning time, compile time, and execution time metrics.
-- Optional EXPLAIN-only mode.
-- Bounded preview execution.
+כולל **DbContext בסגנון VDBContext** לשמירה על עקביות גישה, Cache‑awareness ויכולת בדיקה גבוהה.
 
 ---
 
-## Query Planning (Not Just SQL Generation)
+## בטיחות וביצועים
 
-Every request produces a **Query Plan JSON** before execution, including:
+בטיחות היא פיצ’ר מרכזי:
+- מצב קריאה בלבד כברירת מחדל.
+- כתיבה דורשת אישור מפורש.
+- מגבלות LIMIT אוטומטיות.
+- חסמי מורכבות (joins, depth, risk).
+
+ביצועים הם חלק מה‑DNA:
+- מדדי זמן לתכנון, קומפילציה וביצוע.
+- מצב EXPLAIN בלבד.
+- ביצוע מוגבל לתצוגה מקדימה.
+
+---
+
+## תכנון שאילתות (לא רק SQL)
+
+כל בקשה יוצרת **Query Plan JSON** לפני ביצוע, כולל:
 - intent
 - tables + join paths
 - filters + aggregations
 - group_by / order_by / limit
 - confidence score
 
-This makes query decisions **inspectable, debuggable, and auditable**.
+הכול **ניתן לבקרה, הסבר, דיבוג ואודיט**.
 
 ---
 
-## MCP Tools (What You Can Call)
+## MCP Tools (מה אפשר לקרוא)
 
-Core tools:
-- `nl_to_sql`: translate NL to SQL (optionally include plan).
-- `plan_query`: plan only, no execution.
-- `run_sql`: execute SQL with safety + modes.
-- `ask_db`: NL -> SQL -> (optional) execute in one call.
-- `run_sql_write` / `run_sql_write_approved`: write operations with explicit approval.
-- `get_schema` / `get_erd` / `list_tables`: schema utilities.
+כלים מרכזיים:
+- `nl_to_sql`: תרגום NL ל‑SQL (אפשר להחזיר גם Plan).
+- `plan_query`: תכנון בלבד, בלי ביצוע.
+- `run_sql`: ביצוע עם בטיחות ומצבים.
+- `ask_db`: NL -> SQL -> (אופציונלי) ביצוע.
+- `run_sql_write` / `run_sql_write_approved`: כתיבה עם אישור מפורש.
+- `get_schema` / `get_erd` / `list_tables`: כלי סכימה.
 
-Execution modes:
-- `mode="explain"`: return plan and EXPLAIN only.
-- `mode="preview"`: safe limited execution.
-- `mode="execute"`: full execution (still bounded by policy).
+מצבי הרצה:
+- `mode="explain"`: Plan + EXPLAIN בלבד.
+- `mode="preview"`: ביצוע מוגבל ובטוח.
+- `mode="execute"`: ביצוע מלא תחת מדיניות.
 
 ---
 
-## Setup
+## טכנולוגיה ועקרונות בנייה
 
-### 1) Environment
+- **SQLAlchemy** כאדפטור ראשי למסדי נתונים.
+- **DbContext Singleton** לאחידות ויציבות.
+- **Dependency Injection** מסודר בכל השכבות.
+- **DTOs** להעברת נתונים ברורה ומבוקרת.
+
+---
+
+## הרצה מקומית
+
 ```bash
 python -m venv venv
 ```
-Activate:
+הפעלה:
 - Windows: `venv\Scripts\activate`
 - macOS/Linux: `source venv/bin/activate`
 
-Install dependencies:
+התקנה:
 ```bash
 pip install -e .
 ```
 
-### 2) Configure `.env`
-Create `mcp_sql_agent/app/.env`:
-```bash
-DB_URL=sqlite:///path/to/your.db
-OPENAI_API_KEY=your_api_key
-OPENAI_MODEL=gpt-4o-mini
-LOG_LEVEL=INFO
-```
-
-### 3) Run MCP Server
+הרצת MCP Server:
 ```bash
 python -m mcp_sql_agent.app.main
 ```
 
 ---
 
-## Tests
+## בדיקות
 
 ```bash
 pytest
 ```
 
-Includes tests for policy enforcement, caching, audit logging, planning, and tool behavior.
+בדיקות כוללות: אבטחה, תכנון, caching, audit logging, וכלי MCP.
 
 ---
 
-## Non-Goals
+## לא המטרה
 
-- Not a BI or visualization tool.
-- Not a chat UI.
-- Not an autonomous agent executing without approval.
+- לא BI ולא דשבורד.
+- לא UI לצ׳אט.
+- לא סוכן אוטונומי שרץ בלי אישור.
 
 ---
 
-## Summary
+## בשורה התחתונה
 
-Q-Forge is a **production-minded query control plane**. It emphasizes **performance, safety, and explainability** across the entire query lifecycle, with Clean Architecture and test coverage to keep the system reliable as it grows.
+Q-Forge הוא **פרויקט פרודקשן‑גרייד** שנועד להביא את השאילתות **הכי מהירות, יעילות ובטוחות**. הוא נבנה נכון, נבדק נכון, ומוכן לעבוד בכל סביבת DB עם שליטה מלאה על ביצועים ומדיניות.
