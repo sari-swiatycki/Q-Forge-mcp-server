@@ -23,7 +23,7 @@ building not just an NL→SQL translator, but a control plane that understands t
 
 ---
 
-##🔥 What Makes It Different
+## What Makes It Different
 
 - **Database-aware NL→SQL engine** : 
   Natural-language questions are translated into correct SQL by reasoning over the actual database schema (LLM).
@@ -115,29 +115,37 @@ Execution modes:
 
 ---
 
-## Quickstart
 
-Create and activate a venv:
+
+## Quick Start
+
+This project runs as an MCP server (stdio transport) that translates
+natural-language questions into safe, validated SQL queries.
+
+### Requirements
+- Python 3.10+
+- A supported database (SQLite works out of the box)
+- An LLM API key (OpenAI)
+
+---
+
+### 1. Create and activate a virtual environment
+
 ```bash
 python -m venv venv
-```
-- Windows: `venv\Scripts\activate`
-- macOS/Linux: `source venv/bin/activate`
 
-Install:
-```bash
+
 pip install -e .
-```
 
-Configure environment in `mcp_sql_agent/app/.env`:
+
+### Configure environment in `mcp_sql_agent/app/.env`:
 ```bash
 DB_URL=sqlite:///mcp_sql_agent/app/demo.db
 OPENAI_API_KEY=your_api_key_here
 OPENAI_MODEL=gpt-4o-mini
-LOG_LEVEL=INFO
 ```
 
-Run the MCP server (stdio transport):
+### Run the MCP Server
 ```bash
 python -m mcp_sql_agent.app.main
 ```
@@ -154,9 +162,9 @@ cwd = "C:\\path\\to\\Q-Forge"
 
 ---
 
-## Tests
-
-```bash
+## Testing
+The project includes an automated pytest-based test suite focused on orchestration logic, decision paths, and failure handling.
+```powershell
 pytest
 ```
 
