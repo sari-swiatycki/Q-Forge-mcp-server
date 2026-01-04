@@ -1,7 +1,7 @@
 # Q-Forge
 ### AI Query Planning, Safety & Performance Control Plane
 
-Q-Forge היא מערכת MCP שמתרגמת שאלות בשפה טבעית ל-**SQL אופטימלי**, מאמתת **בטיחות**, ומריצה עם **שומרי ביצועים**. כאן הדגש הוא פחות על "אש" ויותר על דיוק ומהירות: המערכת שמה דגש על השאילתות הכי נכונות והכי מהירות.
+Q-Forge is an MCP-ready control plane that turns natural-language questions into **optimized SQL**, validates them for **safety**, and executes them with **performance guardrails**. This is less about hype and more about accuracy and speed: the system prioritizes the most correct and fastest queries.
 
 This is not just "NL-to-SQL". It is a **full query lifecycle system**: plan, validate, explain, measure, and control.
 
@@ -19,7 +19,7 @@ This is not just "NL-to-SQL". It is a **full query lifecycle system**: plan, val
 
 ## The Story Behind It
 
-בפרויקט הקודם שהתעסקתי איתו נגעתי בתשתיות AI עם דגש על ביצועים — שם זה היה GPU ו‑Inference. הבנתי שהפרויקט הזה לא יהיה שלם אם לא נשים דגש אמיתי על ביצועים. דיברתי עם כמה חברות, אחת מהן בנק, והצורך היה ברור: שהבינה תכיר את ה‑VDB, תדע להרכיב סקריפטים ב‑SQL ללוחות כבדים שמתאימים לשרתים עמוסים, ותבין הקשרים וסכמות בעזרת תרשימים. לכן בניתי מערכת נוחה, נעימה ובעיקר יעילה — לא רק למתכנתי SQL, אלא גם לאנשים שרוצים לנהל משכורות עובדים בצורה פשוטה.
+In a previous project I worked on AI infrastructure with a strong focus on performance. There it was GPU and inference. That experience made it clear this project will not be complete without serious performance focus. I spoke with several companies, including a bank, and the need was clear: the intelligence must know the VDB, know how to assemble SQL scripts for heavy tables on busy, bank-grade servers, and understand context and schema through diagrams. So I built a system that is pleasant and efficient, not only for SQL developers, but also for people who want to manage employee payroll in a simple way.
 
 ---
 
