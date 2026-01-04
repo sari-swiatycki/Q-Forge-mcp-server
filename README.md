@@ -10,14 +10,10 @@ every query is a potentially dangerous, expensive operation — and must be plan
 
 ## Background / Motivation
 This project is a direct continuation of my previous work on AI infrastructure.
-
 In a prior project, I focused on GPU-based inference systems, where performance measurement, bottleneck analysis, and efficiency were not optional — they were the core of the system.
-
 Working on large-scale inference made one thing very clear:
 a system that is “correct” but inefficient is not production-ready.
-
 While that project operated in the GPU and inference domain, the same realization applies even more strongly to databases and query execution.
-
 In environments such as banks or enterprise data platforms,
 There is no room for unnecessary latency, and דscripts must never block or degrade the system.
 This insight led to the core idea behind Q-Forge:
