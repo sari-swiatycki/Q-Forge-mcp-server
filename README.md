@@ -1,23 +1,27 @@
 # Q-Forge
 ### AI Query Planning, Safety & Performance Control Plane
 
-Q-Forge is an MCP-ready control plane that turns natural-language requests into SQL through a structured query lifecycle: plan, validate, explain, execute (bounded), and measure. It emphasizes safety gates, policy reasoning, and measurable performance metrics rather than opaque SQL generation.
+Q-Forge is an MCP-ready control plane that turns natural-language requests into SQL through a structured query lifecycle: plan, validate, explain, execute (optional), and measure. It emphasizes safety gates, policy reasoning, and measurable performance metrics rather than opaque SQL generation.
 
 ---
 
 ## Background / Motivation
 
-I built AI infrastructure with a focus on performance analysis (GPU/inference). The same mindset maps to database query safety and efficiency: plan first, enforce guardrails, and expose metrics at each stage of the query lifecycle. Q-Forge applies those principles to SQL generation and execution through explicit planning, policy enforcement, and auditability.
+This project is a continuation of my work on AI infrastructure, where performance measurement, bottleneck analysis, and efficiency were core requirements. The same mindset applies to databases: queries are potentially expensive and risky operations, so they must be planned, validated, measured, and governed.
+
+In production environments such as banks or enterprise data platforms, there is no room for unnecessary latency, and scripts must never block or degrade the system. Q-Forge exists to make NL-to-SQL safe, auditable, and performance-aware by default.
 
 ---
 
 ## What Makes It Different
 
-- **Plan-first lifecycle**: every request produces a Query Plan JSON, so the policy engine can evaluate intent and risk before execution.
+- **Database-aware NL-to-SQL**: translation is guided by live schema introspection.
+- **Explicit schema understanding**: tables, columns, foreign keys, and join paths are modeled and exposed as plans or diagrams.
+- **Plan-first lifecycle**: every request produces a Query Plan JSON before any execution.
 - **Policy-driven safety**: writes are blocked by default; rule checks decide what can execute.
-- **Stage-level metrics**: schema fetch, LLM translation, planning/EXPLAIN, and execution timings are captured for performance analysis.
-- **Explain/preview modes**: safe modes return EXPLAIN output or bounded results before any full execution.
-- **Deterministic caching**: NL→SQL results are cached with a schema+query fingerprint.
+- **Stage-level metrics**: schema fetch, LLM translation, planning/EXPLAIN, and execution timings are recorded.
+- **Explain/preview modes**: safe modes return EXPLAIN output or bounded results before full execution.
+- **Deterministic caching**: NL-to-SQL results are cached with a schema+query fingerprint.
 
 ---
 
@@ -48,8 +52,8 @@ flowchart TD
 Q-Forge follows Clean Architecture:
 - **Interfaces (MCP tools)**: transport and tool definitions.
 - **Application layer**: query lifecycle orchestration and modes.
-- **Core engine**: planning, validation, and explainability.
-- **Infrastructure**: SQLAlchemy adapters, LLM providers, and audit logging.
+- **Domain (ports)**: stable interfaces for adapters.
+- **Infrastructure**: SQLAlchemy adapter, DB context, LLM provider, config, and logging.
 
 ---
 
