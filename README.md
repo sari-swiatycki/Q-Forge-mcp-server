@@ -14,10 +14,10 @@ I built AI infrastructure with a focus on performance analysis (GPU/inference). 
 ## What Makes It Different
 
 - **Plan-first lifecycle**: every request produces a Query Plan JSON, so the policy engine can evaluate intent and risk before execution.
-- **Policy-driven safety**: writes are blocked by default; explicit allowlists and rule checks decide what can execute.
-- **Stage-level metrics**: planning, validation, explain, and execution timings are captured for performance analysis.
+- **Policy-driven safety**: writes are blocked by default; rule checks decide what can execute.
+- **Stage-level metrics**: schema fetch, LLM translation, planning/EXPLAIN, and execution timings are captured for performance analysis.
 - **Explain/preview modes**: safe modes return EXPLAIN output or bounded results before any full execution.
-- **Deterministic caching**: schema fingerprints key the plan cache to reduce recomputation on unchanged metadata.
+- **Deterministic caching**: NL→SQL results are cached with a schema+query fingerprint.
 
 ---
 
@@ -25,8 +25,8 @@ I built AI infrastructure with a focus on performance analysis (GPU/inference). 
 
 1. **Plan**: build a structured Query Plan (JSON).
 2. **Validate**: policy engine checks for safety and allowed operations.
-3. **Explain**: optional EXPLAIN and heuristic estimates.
-4. **Execute**: bounded execution in preview or explicit full execution.
+3. **Explain**: produce EXPLAIN output and heuristic estimates by default.
+4. **Execute (optional)**: only when explicitly requested by the client.
 5. **Audit**: write decisions, metrics, and outcomes to the audit log.
 
 ---
@@ -38,12 +38,11 @@ flowchart TD
   A[Natural language request] --> B[Schema Introspection]
   B --> C[Query Plan JSON]
   C --> D[Safety/Policy Gate]
-  D --> E{Mode}
-  E -->|explain| F[Explain Output]
-  E -->|preview| G[Bounded Execute + LIMIT]
-  E -->|export| H[CSV/JSON Output]
-  G --> I[Metrics + Audit Log]
-  H --> I
+  D --> F[Explain Output + Estimates]
+  F --> J{Client requests execution?}
+  J -->|no| I[Metrics + Audit Log]
+  J -->|yes| G[Execute (preview or full)]
+  G --> I
 ```
 
 Q-Forge follows Clean Architecture:
@@ -71,13 +70,22 @@ Q-Forge follows Clean Architecture:
 
 ---
 
+## Who It's For
+
+Q-Forge is useful for teams that need controlled NL-to-SQL:
+- **Banking/finance analytics** teams who need safe, audited query execution.
+- **Operations/HR** teams who ask for employee and staffing reports in SQL.
+- **Data/BI** users who want fast, safe exploration without direct DB access.
+
+---
+
 ## MCP Tools
 
 Core tools:
 - `nl_to_sql`: translate NL to SQL (optionally include plan).
-- `plan_query`: plan only, no execution.
+- `plan_query`: plan only, no execution (returns recommended SQL and estimates).
 - `run_sql`: execute SQL with safety + modes.
-- `ask_db`: NL -> SQL -> (optional) execute in one call.
+- `ask_db`: NL -> SQL -> plan by default; executes only when requested.
 - `run_sql_write` / `run_sql_write_approved`: write operations with explicit approval.
 - `get_schema` / `get_erd` / `list_tables`: schema utilities.
 
@@ -137,8 +145,7 @@ Example tool call (client-side):
 {
   "tool": "ask_db",
   "arguments": {
-    "question": "Top 5 customers by revenue last quarter",
-    "mode": "preview"
+    "nl_query": "Top 5 customers by revenue last quarter"
   }
 }
 ```
@@ -152,3 +159,12 @@ pytest
 ```
 
 Includes tests for policy enforcement, caching, audit logging, planning, and tool behavior.
+
+---
+
+## Roadmap (Near-Term)
+
+- Expand safety policy with configurable allowlists and stricter SQL parsing.
+- Add true query optimization hints (not just safe LIMIT and heuristics).
+- Harden authentication/authorization for multi-tenant deployments.
+- Improve observability with structured tracing and richer audit schemas.

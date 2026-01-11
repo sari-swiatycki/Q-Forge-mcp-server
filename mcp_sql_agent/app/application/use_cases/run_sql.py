@@ -9,10 +9,12 @@ from mcp_sql_agent.app.domain.ports import SqlAdapterProvider
 
 
 class RunSqlUseCase:
+    """Execute read queries with planning, safety checks, and formatting."""
     def __init__(self, adapter_provider: SqlAdapterProvider) -> None:
+        """Create the use case with a DB adapter provider."""
         self._adapter_provider = adapter_provider
 
-    def execute(
+    async def execute(
         self,
         sql: str,
         format_table_result: bool = False,
@@ -26,6 +28,23 @@ class RunSqlUseCase:
         output_format: str = "json",
         metrics: dict | None = None,
     ) -> dict:
+        """Validate, plan, and execute a read query.
+
+        Args:
+            sql: SQL statement to execute (SELECT/CTE only).
+            format_table_result: When True, include a formatted table string.
+            table_style: Table formatting style for table output.
+            db_url: Optional override for the default DB URL.
+            safe: When True, enforce read-only policy and safe LIMITs.
+            safe_limit: Max rows used for safety checks and planning.
+            plan: Optional precomputed plan to reuse for execution.
+            mode: "execute" (default), "preview", or "explain".
+            preview_limit: Row cap for preview mode.
+            output_format: Output format (e.g., "json", "csv", "table").
+            metrics: Optional dict to populate with timing/row counts.
+        Returns:
+            Dict containing rows, policy metadata, and optional formatting.
+        """
         ok, err = validate_sql_select(sql)
         if not ok:
             return {"error": err}
@@ -33,7 +52,7 @@ class RunSqlUseCase:
         adapter = self._adapter_provider.get_adapter(db_url)
         if plan is None:
             plan_start = time.perf_counter()
-            active_plan = build_query_plan(sql, adapter, safe_limit=safe_limit)
+            active_plan = await build_query_plan(sql, adapter, safe_limit=safe_limit)
             if metrics is not None:
                 metrics["compile_sql_ms"] = round(
                     (time.perf_counter() - plan_start) * 1000, 2
@@ -55,7 +74,7 @@ class RunSqlUseCase:
             return {"plan": active_plan, "policy": policy, "metrics": metrics or {}}
 
         exec_start = time.perf_counter()
-        rows = adapter.query(exec_sql)
+        rows = await adapter.query(exec_sql)
         db_exec_ms = round((time.perf_counter() - exec_start) * 1000, 2)
         if metrics is not None:
             metrics["db_exec_ms"] = db_exec_ms

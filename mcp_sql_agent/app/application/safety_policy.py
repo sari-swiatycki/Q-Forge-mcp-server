@@ -4,7 +4,15 @@ from mcp_sql_agent.app.application.sql_validation import has_limit
 
 
 def evaluate_policy(sql: str, plan: dict, read_only: bool = True) -> dict:
-    """Evaluate a simple safety policy and return an allow/deny decision."""
+    """Evaluate a safety policy and return an allow/deny decision.
+
+    Args:
+        sql: SQL statement to evaluate.
+        plan: Planning metadata (risk score, safe_sql, etc).
+        read_only: When True, reject write operations.
+    Returns:
+        Dict with policy decision and suggested remediation.
+    """
     text = sql.strip().lower()
     if read_only and not (text.startswith("select") or text.startswith("with")):
         return {

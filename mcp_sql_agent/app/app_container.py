@@ -5,6 +5,7 @@ from mcp_sql_agent.app.infrastructure.llm.translator import OpenAiTranslator
 
 
 def build_sql_agent_service() -> SqlAgentService:
+    """Compose and return the application service with configured providers."""
     # Composition root: wire infrastructure to application once.
     settings = get_settings()
     context = DbContext(settings.db_url)

@@ -4,7 +4,9 @@ from datetime import datetime, timezone
 
 
 class JsonFormatter(logging.Formatter):
+    """Format log records as JSON payloads."""
     def format(self, record: logging.LogRecord) -> str:
+        """Serialize a log record into JSON."""
         payload = {
             "ts": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
@@ -17,6 +19,7 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure_logging(level: str) -> None:
+    """Configure root logging with JSON formatting at the given level."""
     handler = logging.StreamHandler()
     handler.setFormatter(JsonFormatter())
     root = logging.getLogger()

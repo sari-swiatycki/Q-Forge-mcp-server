@@ -5,7 +5,9 @@ description = "MCP server for NL-to-SQL with plan-first safety and performance s
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "sqlalchemy>=2.0",
+  "sqlalchemy[asyncio]>=2.0",
+  "aiofiles>=23.2",
+  "aiosqlite>=0.19",
   "openai>=1.0",
   "psycopg>=3.1",
 ]

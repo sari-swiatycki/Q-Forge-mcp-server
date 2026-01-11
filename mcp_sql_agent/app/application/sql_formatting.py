@@ -1,4 +1,5 @@
 def _format_table_grid(headers: list[str], rows: list[dict], col_widths: dict) -> str:
+    """Render rows into an ASCII grid table."""
     def _border() -> str:
         parts = ["+" + "-" * (col_widths[h] + 2) for h in headers]
         return "".join(parts) + "+"
@@ -15,6 +16,7 @@ def _format_table_grid(headers: list[str], rows: list[dict], col_widths: dict) -
 
 
 def format_table(rows: list[dict], style: str = "simple") -> str:
+    """Format rows as a simple or grid ASCII table."""
     if not rows:
         return ""
 
@@ -40,6 +42,7 @@ def format_table(rows: list[dict], style: str = "simple") -> str:
 
 
 def format_csv(rows: list[dict]) -> str:
+    """Format rows as CSV with minimal quoting."""
     if not rows:
         return ""
     headers = list(rows[0].keys())

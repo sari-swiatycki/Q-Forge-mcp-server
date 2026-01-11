@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def _build_explain_sql(sql: str, dialect: str) -> str:
+    """Return a dialect-specific EXPLAIN statement for the SQL."""
     # Normalize EXPLAIN shape per dialect so downstream parsing stays simple.
     base, _ = strip_trailing_semicolon(sql)
     if dialect == "sqlite":
@@ -24,11 +25,12 @@ def _build_explain_sql(sql: str, dialect: str) -> str:
     return f"EXPLAIN {base}"
 
 
-def _run_explain(sql: str, adapter: SqlAdapter) -> dict:
-    dialect = adapter.get_dialect()
+async def _run_explain(sql: str, adapter: SqlAdapter) -> dict:
+    """Execute EXPLAIN for the SQL and return raw rows with metadata."""
+    dialect = await adapter.get_dialect()
     explain_sql = _build_explain_sql(sql, dialect)
     try:
-        rows = adapter.query(explain_sql)
+        rows = await adapter.query(explain_sql)
         return {"dialect": dialect, "explain_sql": explain_sql, "rows": rows}
     except Exception as exc:
         logger.exception("explain failed")
@@ -36,6 +38,7 @@ def _run_explain(sql: str, adapter: SqlAdapter) -> dict:
 
 
 def _extract_postgres_plan(rows: list[dict]) -> dict:
+    """Extract a JSON plan from PostgreSQL EXPLAIN results."""
     if not rows:
         return {}
     first = rows[0]
@@ -59,6 +62,7 @@ def _extract_postgres_plan(rows: list[dict]) -> dict:
 
 
 def _extract_tables(sql: str) -> list[str]:
+    """Extract table names from FROM/JOIN clauses."""
     text = sql.lower()
     tables = re.findall(r"from\\s+([a-z0-9_\\.]+)", text)
     tables += re.findall(r"join\\s+([a-z0-9_\\.]+)", text)
@@ -67,11 +71,13 @@ def _extract_tables(sql: str) -> list[str]:
 
 
 def _extract_joins(sql: str) -> list[str]:
+    """Extract JOIN targets from SQL text."""
     text = sql.lower()
     return re.findall(r"join\\s+([a-z0-9_\\.]+)", text)
 
 
 def _extract_filters(sql: str) -> list[str]:
+    """Extract a simplified WHERE clause for plan metadata."""
     text = sql.lower()
     where_match = re.search(r"where\\s+(.*?)(group\\s+by|order\\s+by|limit|$)", text)
     if not where_match:
@@ -81,6 +87,7 @@ def _extract_filters(sql: str) -> list[str]:
 
 
 def _extract_group_by(sql: str) -> list[str]:
+    """Extract GROUP BY columns from SQL text."""
     text = sql.lower()
     match = re.search(r"group\\s+by\\s+(.*?)(order\\s+by|limit|$)", text)
     if not match:
@@ -89,6 +96,7 @@ def _extract_group_by(sql: str) -> list[str]:
 
 
 def _extract_order_by(sql: str) -> list[str]:
+    """Extract ORDER BY columns from SQL text."""
     text = sql.lower()
     match = re.search(r"order\\s+by\\s+(.*?)(limit|$)", text)
     if not match:
@@ -97,6 +105,7 @@ def _extract_order_by(sql: str) -> list[str]:
 
 
 def _extract_limit(sql: str) -> int | None:
+    """Extract a numeric LIMIT value if present."""
     match = re.search(r"\\blimit\\s+(\\d+)", sql.lower())
     if not match:
         return None
@@ -104,6 +113,7 @@ def _extract_limit(sql: str) -> int | None:
 
 
 def _extract_aggregations(sql: str) -> list[str]:
+    """Return aggregate functions referenced in the SQL text."""
     text = sql.lower()
     aggs = []
     for fn in ["count", "sum", "avg", "min", "max"]:
@@ -113,6 +123,7 @@ def _extract_aggregations(sql: str) -> list[str]:
 
 
 def _build_schema_graph(schema: dict) -> dict:
+    """Build an undirected graph of table relationships from foreign keys."""
     graph: dict[str, set[str]] = {}
     for fk in schema.get("foreign_keys", []):
         src = fk.get("table")
@@ -125,6 +136,7 @@ def _build_schema_graph(schema: dict) -> dict:
 
 
 def _find_join_path(graph: dict, start: str, end: str) -> list[str]:
+    """Return a join path between two tables using BFS."""
     if start == end:
         return [start]
     queue = [(start, [start])]
@@ -142,6 +154,7 @@ def _find_join_path(graph: dict, start: str, end: str) -> list[str]:
 
 
 def _build_plan_json(sql: str, schema: dict | None = None) -> dict:
+    """Build a light-weight plan summary from SQL text and schema."""
     tables = _extract_tables(sql)
     joins = _extract_joins(sql)
     filters = _extract_filters(sql)
@@ -185,6 +198,7 @@ def _build_plan_json(sql: str, schema: dict | None = None) -> dict:
 
 
 def _walk_plan_nodes(plan: dict) -> list[dict]:
+    """Flatten EXPLAIN plan nodes into a list."""
     if not plan:
         return []
     nodes = [plan]
@@ -194,6 +208,7 @@ def _walk_plan_nodes(plan: dict) -> list[dict]:
 
 
 def _estimate_from_plan(dialect: str, explain_rows: list[dict]) -> dict:
+    """Extract estimate metrics from EXPLAIN output when available."""
     estimate = {"estimate_ms": None, "plan_rows": None, "total_cost": None}
     if dialect in {"postgresql", "postgres"}:
         plan = _extract_postgres_plan(explain_rows)
@@ -209,6 +224,7 @@ def _estimate_from_plan(dialect: str, explain_rows: list[dict]) -> dict:
 
 
 def _detect_plan_risks(dialect: str, explain_rows: list[dict]) -> list[str]:
+    """Detect common risk patterns from EXPLAIN output."""
     risks = []
     if dialect in {"postgresql", "postgres"}:
         plan = _extract_postgres_plan(explain_rows)
@@ -251,6 +267,7 @@ def _suggest_indexes_from_sql(sql: str) -> list[str]:
 
 
 def _assess_query_risk(sql: str, plan_meta: dict) -> dict:
+    """Assess query risk using text heuristics and plan metadata."""
     # Lightweight heuristics to flag common slow-query patterns.
     text = sql.strip().lower()
     risks = []
@@ -305,10 +322,11 @@ def _assess_query_risk(sql: str, plan_meta: dict) -> dict:
     }
 
 
-def build_query_plan(
+async def build_query_plan(
     sql: str, adapter: SqlAdapter, safe_limit: int, schema: dict | None = None
 ) -> dict:
-    explain = _run_explain(sql, adapter)
+    """Build a full query plan with EXPLAIN, risks, and safe SQL."""
+    explain = await _run_explain(sql, adapter)
     plan_rows = explain.get("rows", [])
     plan_meta = _estimate_from_plan(explain.get("dialect", "sql"), plan_rows)
     plan_meta["plan_risks"] = _detect_plan_risks(

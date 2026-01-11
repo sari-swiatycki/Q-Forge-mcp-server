@@ -1,4 +1,5 @@
 def validate_sql_select(sql: str) -> tuple[bool, str]:
+    """Validate that SQL is a safe, single-statement SELECT/CTE."""
     text = sql.strip().lower()
     if not text:
         return False, "SQL is empty."
@@ -30,6 +31,7 @@ def validate_sql_select(sql: str) -> tuple[bool, str]:
 
 
 def validate_sql_write(sql: str) -> tuple[bool, str]:
+    """Validate that SQL is a safe, single-statement write operation."""
     text = sql.strip().lower()
     if not text:
         return False, "SQL is empty."
@@ -54,6 +56,7 @@ def validate_sql_write(sql: str) -> tuple[bool, str]:
 
 
 def strip_trailing_semicolon(sql: str) -> tuple[str, str]:
+    """Return SQL without a trailing semicolon and the removed suffix."""
     text = sql.rstrip()
     if text.endswith(";"):
         return text[:-1], ";"
@@ -61,10 +64,12 @@ def strip_trailing_semicolon(sql: str) -> tuple[str, str]:
 
 
 def has_limit(sql: str) -> bool:
+    """Return True when the SQL includes a LIMIT clause."""
     return re.search(r"\blimit\b", sql, re.IGNORECASE) is not None
 
 
 def apply_limit(sql: str, limit: int) -> tuple[str, bool]:
+    """Ensure SQL has a LIMIT clause and report if it was added."""
     if has_limit(sql):
         return sql, False
     base, semi = strip_trailing_semicolon(sql)

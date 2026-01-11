@@ -2,11 +2,13 @@ import re
 
 
 def _sanitize_identifier(value: str) -> str:
+    """Normalize identifiers for Mermaid output by stripping unsafe characters."""
     cleaned = re.sub(r"[^a-zA-Z0-9_]", "_", value or "")
     return cleaned or "unknown"
 
 
 def build_erd_mermaid(schema: dict) -> str:
+    """Build a Mermaid ER diagram string from schema metadata."""
     tables = schema.get("tables", {})
     foreign_keys = schema.get("foreign_keys", [])
 

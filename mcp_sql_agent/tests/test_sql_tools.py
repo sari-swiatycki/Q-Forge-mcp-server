@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 
 from mcp_sql_agent.app.application.sql_agent_service import SqlAgentService  # noqa: E402
@@ -13,18 +14,21 @@ from mcp_sql_agent.app.application.sql_validation import validate_sql_select  # 
 def _make_sqlite_adapter(tmp_path: Path) -> SQLAlchemyAdapter:
     db_path = tmp_path / "test.db"
     adapter = SQLAlchemyAdapter(f"sqlite:///{db_path}")
-    with adapter.engine.begin() as conn:
-        conn.exec_driver_sql(
+    asyncio.run(
+        adapter.execute_write(
             "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)"
         )
-        conn.exec_driver_sql(
+    )
+    asyncio.run(
+        adapter.execute_write(
             "INSERT INTO users (id, name) VALUES (1, 'Alice'), (2, 'Bob')"
         )
+    )
     return adapter
 
 
 class _FakeTranslator:
-    def translate(self, nl_query: str, schema: dict, dialect: str) -> str:
+    async def translate(self, nl_query: str, schema: dict, dialect: str) -> str:
         return "SELECT 1"
 
 
@@ -68,7 +72,7 @@ def test_run_sql_executes_select_on_sqlite(tmp_path, monkeypatch):
     adapter = _make_sqlite_adapter(tmp_path)
     _set_test_service(tmp_path, monkeypatch, adapter)
 
-    res = sql_tools.run_sql("SELECT name FROM users ORDER BY id")
+    res = asyncio.run(sql_tools.run_sql("SELECT name FROM users ORDER BY id"))
     assert res["row_count"] == 2
     assert res["rows"] == [{"name": "Alice"}, {"name": "Bob"}]
 
@@ -80,12 +84,14 @@ def test_run_sql_write_updates_rows(tmp_path):
     sql_tools._set_service(
         SqlAgentService(db_context.DbContext(db_url), lambda: _FakeTranslator())
     )
-    res = sql_tools.run_sql_write_approved(
-        "UPDATE users SET name='Dana' WHERE id=2", db_url=db_url
+    res = asyncio.run(
+        sql_tools.run_sql_write_approved(
+            "UPDATE users SET name='Dana' WHERE id=2", db_url=db_url
+        )
     )
     assert res["row_count"] == 1
 
-    rows = adapter.query("SELECT name FROM users WHERE id=2")
+    rows = asyncio.run(adapter.query("SELECT name FROM users WHERE id=2"))
     assert rows == [{"name": "Dana"}]
 
 
@@ -95,5 +101,5 @@ def test_run_sql_write_blocks_select():
             db_context.DbContext("sqlite:///:memory:"), lambda: _FakeTranslator()
         )
     )
-    res = sql_tools.run_sql_write("SELECT * FROM users")
+    res = asyncio.run(sql_tools.run_sql_write("SELECT * FROM users"))
     assert "error" in res
